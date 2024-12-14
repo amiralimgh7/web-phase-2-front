@@ -1,41 +1,152 @@
 import React, { useState, useEffect } from "react";
-import DesignerNavbar from "./components/DesignerNavbar"; // استفاده از DesignerNavbar
-import "./questions.css"; // استایل‌های صفحه سوالات
+import DesignerNavbar from "./components/DesignerNavbar"; // Navbar component
+import "./questions.css"; // Styles for the questions page
 
 const Questions = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [questions, setQuestions] = useState([
-    {
-      text: "3+2 چقدر می‌شود؟",
-      options: ["3", "5", "6", "4"],
-      correct: 2,
-      category: "ریاضی",
-      difficulty: "آسان",
-    },
-    {
-      text: "جرم زمین چقدر است؟",
-      options: ["10^24 کیلوگرم", "6×10^24 کیلوگرم", "5×10^24 کیلوگرم", "7×10^24 کیلوگرم"],
-      correct: 2,
-      category: "فیزیک",
-      difficulty: "سخت",
-    },
-  ]);
-
+  const [questions, setQuestions] = useState([]); // Questions fetched from the API
+  const [categories, setCategories] = useState([]); // Categories fetched from the API
   const [newQuestion, setNewQuestion] = useState({
     text: "",
     options: ["", "", "", ""],
     correct: "1",
-    category: "ریاضی",
-    difficulty: "آسان",
+    category: "", // Dynamically populated category
+    difficulty: "1", // Assuming 1 is "آسان"
   });
+  const [error, setError] = useState(""); // Error message state
+  const username = localStorage.getItem("username"); // Designer's username
 
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", darkMode);
-  }, [darkMode]);
+  const fetchQuestions = async () => {
+    if (!username) {
+      setError("نام کاربری پیدا نشد. لطفاً وارد شوید.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:8080/questions?username=${username}`);
+      if (response.ok) {
+        const result = await response.json();
+  
+        console.log("Raw Questions Data from API:", result.dto.questions);
+  
+        if (result.responseHeader === "OK") {
+          const difficultyMapping = { 1: "آسان", 2: "متوسط", 3: "سخت" };
+          const formattedQuestions = result.dto.questions.map((q, index) => ({
+            text: q.question,
+            options: [q.answer1, q.answer2, q.answer3, q.answer4],
+            correct: q.correctAnswer, // Default to "correct = 3" (placeholder, update when API includes correctAnswer)
+            category: q.category,
+            difficulty: difficultyMapping[(index % 3) + 1], // Cycle difficulty based on index
+          }));
+          
+          console.log("Formatted Questions with Cycled Difficulty:", formattedQuestions);
+          setQuestions(formattedQuestions);
+        } else {
+          setError("خطا در دریافت اطلاعات سوالات.");
+        }
+      } else {
+        setError("خطا در ارتباط با سرور.");
+      }
+    } catch (err) {
+      console.error("Error fetching questions:", err);
+      setError("خطا در ارتباط با سرور.");
+    }
+  };
+  
 
+
+  // Fetch categories for the dropdown
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/categories");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.responseHeader === "OK") {
+          setCategories(result.dto.categories); // Set the fetched categories
+          setNewQuestion((prev) => ({
+            ...prev,
+            category: result.dto.categories[0]?.category_name || "", // Default to the first category
+          }));
+        } else {
+          setError("خطا در دریافت اطلاعات دسته‌بندی‌ها.");
+        }
+      } else {
+        setError("خطا در ارتباط با سرور.");
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+      setError("خطا در ارتباط با سرور.");
+    }
+  };
+
+  // Add a new question
+  const handleAddQuestion = async () => {
+    if (!username) {
+      setError("نام کاربری پیدا نشد. لطفاً وارد شوید.");
+      return;
+    }
+
+    const { text, options, correct, category, difficulty } = newQuestion;
+
+    if (!text.trim() || options.some((opt) => !opt.trim())) {
+      setError("تمام فیلدها باید پر شوند.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          designer: username,
+          questionText: text,
+          answer1: options[0],
+          answer2: options[1],
+          answer3: options[2],
+          answer4: options[3],
+          correctAnswer: correct,
+          hardness: difficulty,
+          categoryName: category,
+        }).toString(),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.responseHeader === "OK") {
+        setNewQuestion({
+          text: "",
+          options: ["", "", "", ""],
+          correct: "1",
+          category: categories[0]?.category_name || "", // Reset to the first category
+          difficulty: "1",
+        });
+        fetchQuestions(); // Reload all questions
+      } else {
+        setError("خطا در افزودن سوال.");
+      }
+    } catch (err) {
+      console.error("Error adding question:", err);
+      setError("خطا در ارتباط با سرور.");
+    }
+  };
+
+  // Toggle dark mode
   const handleToggleDarkMode = () => {
     setDarkMode((prevMode) => !prevMode);
   };
+
+  // Fetch questions and categories when the component mounts
+  useEffect(() => {
+    fetchQuestions();
+    fetchCategories();
+  }, []);
+
+  // Apply dark mode
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+  }, [darkMode]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -49,31 +160,22 @@ const Questions = () => {
     }
   };
 
-  const handleAddQuestion = () => {
-    setQuestions([...questions, { ...newQuestion, correct: parseInt(newQuestion.correct) }]);
-    setNewQuestion({
-      text: "",
-      options: ["", "", "", ""],
-      correct: "1",
-      category: "ریاضی",
-      difficulty: "آسان",
-    });
-  };
-
   return (
     <div className="main-container">
       <DesignerNavbar />
 
-      {/* دکمه تغییر حالت تاریک */}
+      {/* Dark mode toggle button */}
       <button id="dark-mode-toggle" className="dark-mode-btn" onClick={handleToggleDarkMode}>
         <span id="icon">{darkMode ? "🌜" : "🌞"}</span>
       </button>
 
-      {/* بخش مدیریت سوالات */}
       <div className="question-box">
         <h2>مدیریت سوالات</h2>
 
-        {/* افزودن سوال جدید */}
+        {/* Error message */}
+        {error && <p className="error-message">{error}</p>}
+
+        {/* Add new question */}
         <div className="add-question">
           <textarea
             id="question-text"
@@ -114,9 +216,11 @@ const Questions = () => {
             value={newQuestion.category}
             onChange={handleInputChange}
           >
-            <option value="ریاضی">ریاضی</option>
-            <option value="فیزیک">فیزیک</option>
-            <option value="شیمی">شیمی</option>
+            {categories.map((cat, index) => (
+              <option key={index} value={cat.category_name}>
+                {cat.category_name}
+              </option>
+            ))}
           </select>
 
           <label htmlFor="difficulty">درجه دشواری:</label>
@@ -126,9 +230,9 @@ const Questions = () => {
             value={newQuestion.difficulty}
             onChange={handleInputChange}
           >
-            <option value="آسان">آسان</option>
-            <option value="متوسط">متوسط</option>
-            <option value="سخت">سخت</option>
+            <option value="1">آسان</option>
+            <option value="2">متوسط</option>
+            <option value="3">سخت</option>
           </select>
 
           <button id="add-question-btn" onClick={handleAddQuestion}>
@@ -136,7 +240,7 @@ const Questions = () => {
           </button>
         </div>
 
-        {/* نمایش سوالات */}
+        {/* Display questions */}
         <div className="questions-container" id="questions-container">
           {questions.map((q, index) => (
             <div key={index} className="question-item">
