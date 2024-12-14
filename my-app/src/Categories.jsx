@@ -1,45 +1,86 @@
 import React, { useState, useEffect } from "react";
-import DesignerNavbar from "./components/DesignerNavbar"; // استفاده از DesignerNavbar
-import "./categories.css"; // استایل‌های صفحه دسته‌بندی‌ها
+import DesignerNavbar from "./components/DesignerNavbar";
+import "./categories.css";
 
 const Categories = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [categories, setCategories] = useState([
-    { name: "ریاضی", questions: 10 },
-    { name: "فیزیک", questions: 8 },
-    { name: "شیمی", questions: 12 },
-  ]);
+  const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", darkMode);
-  }, [darkMode]);
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/categories");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.responseHeader === "OK") {
+          setCategories(result.dto.categories);
+        } else {
+          setError("خطا در دریافت اطلاعات دسته‌بندی‌ها.");
+        }
+      } else {
+        setError("خطا در ارتباط با سرور.");
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+      setError("خطا در ارتباط با سرور.");
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (newCategory.trim() === "") {
+      setError("نام دسته نمی‌تواند خالی باشد.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `categoryName=${encodeURIComponent(newCategory)}`,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.responseHeader === "OK") {
+        setNewCategory("");
+        fetchCategories();
+      } else {
+        setError("خطا در افزودن دسته‌بندی.");
+      }
+    } catch (err) {
+      console.error("Error adding category:", err);
+      setError("خطا در ارتباط با سرور.");
+    }
+  };
 
   const handleToggleDarkMode = () => {
     setDarkMode((prevMode) => !prevMode);
   };
 
-  const handleAddCategory = () => {
-    if (newCategory.trim() !== "") {
-      setCategories([...categories, { name: newCategory, questions: 0 }]);
-      setNewCategory("");
-    }
-  };
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+  }, [darkMode]);
 
   return (
     <div className="main-container">
       <DesignerNavbar />
 
-      {/* دکمه تغییر حالت تاریک */}
       <button id="dark-mode-toggle" className="dark-mode-btn" onClick={handleToggleDarkMode}>
         <span id="icon">{darkMode ? "🌜" : "🌞"}</span>
       </button>
 
-      {/* بخش مدیریت دسته‌بندی */}
       <div className="category-box">
         <h2>مدیریت دسته‌بندی‌ها</h2>
 
-        {/* افزودن دسته جدید */}
+        {error && <p className="error-message">{error}</p>}
+
         <div className="add-category">
           <input
             type="text"
@@ -53,12 +94,11 @@ const Categories = () => {
           </button>
         </div>
 
-        {/* نمایش دسته‌ها */}
         <div className="categories-container" id="categories-container">
           {categories.map((category, index) => (
             <div key={index} className="category-item">
-              <h3>{category.name}</h3>
-              <p>تعداد سوالات: {category.questions}</p>
+              <h3>{category.category_name}</h3>
+              <p>تعداد سوالات: {category.number_of_questions}</p>
             </div>
           ))}
         </div>
