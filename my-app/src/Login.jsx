@@ -1,32 +1,69 @@
 import React, { useEffect, useState } from "react";
-import "./login.css"; // فایل CSS مرتبط با صفحه Login
+import "./login.css";
 
 const Login = () => {
-  const [role, setRole] = useState("player"); // نقش پیش‌فرض
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    role: "player",
+  });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    // اطمینان از حذف کلاس dark-mode هنگام بارگذاری صفحه
     document.body.classList.remove("dark-mode");
   }, []);
 
   const handleToggleDarkMode = () => {
-    // اضافه یا حذف کردن کلاس dark-mode
-    if (document.body.classList.contains("dark-mode")) {
-      document.body.classList.remove("dark-mode");
-    } else {
-      document.body.classList.add("dark-mode");
-    }
+    document.body.classList.toggle("dark-mode");
   };
 
-  const handleLogin = (event) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleLogin = async (event) => {
     event.preventDefault();
-    // منطق ورود
-    alert(`ورود با نقش: ${role}`);
-    // هدایت به صفحه مربوطه بر اساس نقش انتخاب‌شده
-    if (role === "player") {
-      window.location.href = "/player";
-    } else if (role === "designer") {
-      window.location.href = "/designer";
+
+    const { username, password, role } = formData;
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const formBody = new URLSearchParams({
+        username: username,
+        password: password,
+      }).toString();
+
+      const response = await fetch("http://localhost:8080/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formBody,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.responseHeader === "OK") {
+        setSuccess("ورود با موفقیت انجام شد!");
+        if (role === "player") {
+          window.location.href = "/player";
+        } else if (role === "designer") {
+          window.location.href = "/designer";
+        }
+      } else if (result.responseHeader === "USERNAME_NOT_EXISTS") {
+        setError("نام کاربری وجود ندارد.");
+      } else if (result.responseHeader === "WRONG_PASSWORD") {
+        setError("رمز عبور اشتباه است.");
+      } else {
+        setError("خطایی رخ داده است. لطفاً دوباره تلاش کنید.");
+      }
+    } catch (error) {
+      console.error("Error details:", error);
+      setError("خطایی در ارتباط با سرور رخ داده است.");
     }
   };
 
@@ -34,22 +71,38 @@ const Login = () => {
     <div className="main-container">
       <div className="login-box">
         <h2>ورود به سامانه سوال پیچ</h2>
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
         <form id="loginForm" onSubmit={handleLogin}>
           <div className="input-group">
             <label htmlFor="username">نام کاربری:</label>
-            <input type="text" id="username" name="username" required />
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              required
+            />
           </div>
           <div className="input-group">
             <label htmlFor="password">رمز عبور:</label>
-            <input type="password" id="password" name="password" required />
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              required
+            />
           </div>
           <div className="input-group">
             <label htmlFor="role">نقش خود را انتخاب کنید:</label>
             <select
               id="role"
               name="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+              value={formData.role}
+              onChange={handleInputChange}
               required
             >
               <option value="player">بازیکن</option>
@@ -65,8 +118,7 @@ const Login = () => {
             حساب کاربری ندارید؟ <a href="/signup">ثبت‌نام کنید</a>
           </p>
         </div>
-
-        {/* دکمه تغییر حالت تاریک */}
+        {/* Dark mode toggle button */}
         <button
           id="dark-mode-toggle"
           className="dark-mode-btn"
