@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import NavbarPlayer from "./components/NavbarPlayer";
+import DesignerNavbar from "./components/DesignerNavbar";
 import "./profile.css";
 
-const PlayerProfile = () => {
+const DesignerProfile = () => {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
 
@@ -36,28 +36,14 @@ const PlayerProfile = () => {
     fetchProfile();
   }, []);
 
-  const handleToggleDarkMode = () => {
-    const icon = document.getElementById("icon");
-    if (document.body.classList.contains("dark-mode")) {
-      document.body.classList.remove("dark-mode");
-      if (icon) icon.textContent = "🌞";
-    } else {
-      document.body.classList.add("dark-mode");
-      if (icon) icon.textContent = "🌜";
-    }
-  };
-
   return (
     <div className="main-container">
-      {/* استفاده از NavbarPlayer */}
-      <NavbarPlayer />
+      <DesignerNavbar />
 
-      {/* دکمه تغییر حالت تاریک */}
-      <button id="dark-mode-toggle" className="dark-mode-btn" onClick={handleToggleDarkMode}>
+      <button id="dark-mode-toggle" className="dark-mode-btn" onClick={() => document.body.classList.toggle("dark-mode")}>
         <span id="icon">🌞</span>
       </button>
 
-      {/* محتوای پروفایل */}
       <div className="profile-box">
         {error ? (
           <p className="error-message">{error}</p>
@@ -65,16 +51,16 @@ const PlayerProfile = () => {
           <>
             <img
               src={require("./pictures/image.png")}
-              alt="پروفایل بازیکن"
+              alt="پروفایل"
               className="profile-img"
             />
             <h2>پروفایل بازیکن</h2>
-            <p>نام: {profile.username}</p>
+            <p>نام کاربری: {profile.username}</p>
+            <p>تعداد دنبال‌کنندگان: {profile.follower_count}</p>
+            <p>تعداد سوالات طراحی شده: {profile.question_count}</p>
+            <p>تعداد دنبال‌شده‌ها: {profile.following_count}</p>
+            <p>تعداد سوالات پاسخ داده شده: {profile.answered_count}</p>
             <p>امتیاز کل: {profile.score}</p>
-            <p>رتبه: {profile.rank}</p>
-            <p>بازی‌های انجام شده: {profile.gamesPlayed}</p>
-            <p>برد‌ها: {profile.wins}</p>
-            <p>باخت‌ها: {profile.losses}</p>
           </>
         ) : (
           <p>در حال بارگذاری...</p>
@@ -84,4 +70,4 @@ const PlayerProfile = () => {
   );
 };
 
-export default PlayerProfile;
+export default DesignerProfile;

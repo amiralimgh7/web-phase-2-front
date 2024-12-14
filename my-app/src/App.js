@@ -12,6 +12,7 @@ import Categories from "./Categories";
 import Questions from "./Questions";
 import Profile from "./profile";
 import Designer from "./Designer";
+import PlayerProfileMain from "./player_profile_now";
 
 const App = () => {
   return (
@@ -24,6 +25,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/player" element={<Player />} />
+        <Route path="/player/profile/main" element={<PlayerProfileMain />} />
         <Route path="/player/profile" element={<PlayerProfile />} />
         <Route path="/player/questions" element={<PlayerQuestions />} />
         <Route path="/player/leaderboard" element={<PlayerLeaderboard />} />

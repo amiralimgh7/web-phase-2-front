@@ -5,18 +5,15 @@ const Login = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    role: "player",
+    role: "player", // Default role
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    // Ensure dark mode class is removed when page loads
     document.body.classList.remove("dark-mode");
   }, []);
-
-  const handleToggleDarkMode = () => {
-    document.body.classList.toggle("dark-mode");
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -32,23 +29,30 @@ const Login = () => {
     setSuccess("");
 
     try {
+      // Construct form data string for application/x-www-form-urlencoded
       const formBody = new URLSearchParams({
         username: username,
         password: password,
       }).toString();
 
+      // Send the POST request
       const response = await fetch("http://localhost:8080/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: formBody,
+        body: formBody, // Send form data in the body
       });
 
       const result = await response.json();
 
       if (response.ok && result.responseHeader === "OK") {
         setSuccess("ورود با موفقیت انجام شد!");
+
+        // Save username to localStorage
+        localStorage.setItem("username", username);
+
+        // Redirect based on role
         if (role === "player") {
           window.location.href = "/player";
         } else if (role === "designer") {
@@ -63,7 +67,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error("Error details:", error);
-      setError("خطایی در ارتباط با سرور رخ داده است.");
+      setError("خطا در برقراری ارتباط با سرور رخ داده است.");
     }
   };
 
@@ -122,7 +126,7 @@ const Login = () => {
         <button
           id="dark-mode-toggle"
           className="dark-mode-btn"
-          onClick={handleToggleDarkMode}
+          onClick={() => document.body.classList.toggle("dark-mode")}
         >
           <span id="icon">🌞</span>
         </button>

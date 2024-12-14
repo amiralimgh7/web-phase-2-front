@@ -4,7 +4,6 @@
     --input-focus-color: #28a745;
 }
 
-/* استایل‌های منو */
 .menu {
     background-color: var(--menu-bg-color);
     width: 100%;
