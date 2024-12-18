@@ -23,7 +23,7 @@ const Questions = () => {
     }
   
     try {
-      const response = await fetch(`http://localhost:8080/questions?username=${username}`);
+      const response = await fetch(`http://localhost:8080/question-by-user?username=${username}`);
       if (response.ok) {
         const result = await response.json();
   
@@ -45,11 +45,11 @@ const Questions = () => {
           setError("خطا در دریافت اطلاعات سوالات.");
         }
       } else {
-        setError("خطا در ارتباط با سرور.");
+        setError("خطا در وووارتباط با سرور.");
       }
     } catch (err) {
       console.error("Error fetching questions:", err);
-      setError("خطا در ارتباط با سرور.");
+      setError("خطا در اغغغرتباط با سرور.");
     }
   };
   
@@ -71,11 +71,11 @@ const Questions = () => {
           setError("خطا در دریافت اطلاعات دسته‌بندی‌ها.");
         }
       } else {
-        setError("خطا در ارتباط با سرور.");
+        setError("خطا دررر ارتباط با سرور.");
       }
     } catch (err) {
       console.error("Error fetching categories:", err);
-      setError("خطا در ارتباط با سرور.");
+      setError("خطا درووو ارتباط با سرور.");
     }
   };
 
@@ -85,35 +85,36 @@ const Questions = () => {
       setError("نام کاربری پیدا نشد. لطفاً وارد شوید.");
       return;
     }
-
+  
     const { text, options, correct, category, difficulty } = newQuestion;
-
-    if (!text.trim() || options.some((opt) => !opt.trim())) {
-      setError("تمام فیلدها باید پر شوند.");
-      return;
-    }
-
+  
+    // if (!text.trim() || options.some((opt) => !opt.trim())) {
+    //   setError("تمام فیلدها باید پر شوند.");
+    //   return;
+    // }
+  
     try {
-      const response = await fetch("http://localhost:8080/questions", {
+      const formData = new URLSearchParams();
+      formData.append("designer", username);
+      formData.append("questionText", text);
+      formData.append("answer1", options[0]);
+      formData.append("answer2", options[1]);
+      formData.append("answer3", options[2]);
+      formData.append("answer4", options[3]);
+      formData.append("correctAnswer", correct);
+      formData.append("hardness", difficulty);
+      formData.append("categoryName", category); // Match "categoryName" from API
+  
+      const response = await fetch("http://localhost:8080/add-question", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({
-          designer: username,
-          questionText: text,
-          answer1: options[0],
-          answer2: options[1],
-          answer3: options[2],
-          answer4: options[3],
-          correctAnswer: correct,
-          hardness: difficulty,
-          categoryName: category,
-        }).toString(),
+        body: formData.toString(),
       });
-
+  
       const result = await response.json();
-
+  
       if (response.ok && result.responseHeader === "OK") {
         setNewQuestion({
           text: "",
@@ -131,6 +132,7 @@ const Questions = () => {
       setError("خطا در ارتباط با سرور.");
     }
   };
+  
 
   // Toggle dark mode
   const handleToggleDarkMode = () => {

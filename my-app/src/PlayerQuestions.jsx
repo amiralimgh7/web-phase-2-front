@@ -1,23 +1,10 @@
 import React, { useEffect, useState } from "react";
-import NavbarPlayer from "./components/NavbarPlayer"; // استفاده از PlayerNavbar
-import "./player_questions.css"; // استایل‌ها
+import NavbarPlayer from "./components/NavbarPlayer";
+import "./player_questions.css";
 
 const PlayerQuestions = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [questions, setQuestions] = useState({
-    ریاضی: [
-      { question: "2 + 3 چند می‌شود؟", options: ["3", "5", "6", "4"], correct: 2 },
-      { question: "تفریق 9 از 13 چند می‌شود؟", options: ["4", "2", "3", "5"], correct: 1 },
-    ],
-    فیزیک: [
-      { question: "جرم زمین چقدر است؟", options: ["5×10^24 کیلوگرم", "6×10^24 کیلوگرم", "7×10^24 کیلوگرم", "10^25 کیلوگرم"], correct: 2 },
-      { question: "شتاب جاذبه زمین چند است؟", options: ["9.8 متر بر ثانیه", "8.9 متر بر ثانیه", "9.81 متر بر ثانیه", "7.8 متر بر ثانیه"], correct: 3 },
-    ],
-    شیمی: [
-      { question: "جرم مولی آب چقدر است؟", options: ["18 گرم", "20 گرم", "16 گرم", "22 گرم"], correct: 1 },
-      { question: "فرمول شیمیایی نمک چیست؟", options: ["NaCl", "H2O", "CO2", "O2"], correct: 1 },
-    ],
-  });
+  const [categories, setCategories] = useState([]); // Categories from API
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [answeredQuestions, setAnsweredQuestions] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -26,48 +13,181 @@ const PlayerQuestions = () => {
     document.body.classList.toggle("dark-mode", darkMode);
   }, [darkMode]);
 
-  const toggleDarkMode = () => {
-    setDarkMode((prevMode) => !prevMode);
-  };
 
-  const getRandomQuestion = () => {
-    const categories = Object.keys(questions);
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    const randomQuestion =
-      questions[randomCategory][Math.floor(Math.random() * questions[randomCategory].length)];
-    setCurrentQuestion({ ...randomQuestion, category: randomCategory });
-  };
-
-  const getCategoryQuestion = () => {
-    if (selectedCategory) {
-      const randomQuestion =
-        questions[selectedCategory][
-          Math.floor(Math.random() * questions[selectedCategory].length)
-        ];
-      setCurrentQuestion({ ...randomQuestion, category: selectedCategory });
-    } else {
-      alert("لطفاً یک دسته‌بندی انتخاب کنید.");
+  const fetchUserQuestions = async () => {
+    const username = localStorage.getItem("username");
+    if (!username) {
+      alert("نام کاربری پیدا نشد. لطفاً وارد شوید.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:8080/question-by-user?username=${username}`);
+      const result = await response.json();
+      console.log("Fetched Questions by User:", result);
+  
+      if (response.ok && result.responseHeader === "OK") {
+        const formattedQuestions = result.dto.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          options: [q.answer1, q.answer2, q.answer3, q.answer4],
+          category: q.category,
+        }));
+  
+        setAnsweredQuestions(formattedQuestions);
+      } else {
+        alert("خطا در دریافت سوالات پاسخ داده شده.");
+      }
+    } catch (err) {
+      console.error("Error fetching user questions:", err);
+      alert("خطا در ارتباط با سرور.");
     }
   };
 
-  const handleAnswer = (selectedOption) => {
-    if (!currentQuestion) return;
-
-    const isCorrect = selectedOption === currentQuestion.correct;
-    const answeredQuestion = {
-      ...currentQuestion,
-      userAnswer: selectedOption,
-      isCorrect,
-    };
-    setAnsweredQuestions([...answeredQuestions, answeredQuestion]);
-    setCurrentQuestion(null);
+  
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/categories");
+      const result = await response.json();
+      if (result.responseHeader === "OK") {
+        setCategories(result.dto.categories); // Assuming categories are in result.dto.categories
+      } else {
+        console.error("Failed to fetch categories.");
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
   };
+
+  // Fetch a random question
+  const getRandomQuestion = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/one-random-question");
+      const result = await response.json();
+      if (result.responseHeader === "OK") {
+        const q = result.dto;
+        setCurrentQuestion({
+          id: q.id,
+          question: q.question,
+          options: [q.answer1, q.answer2, q.answer3, q.answer4],
+          correct: q.correctAnswer,
+          category: q.category,
+        });
+      } else {
+        console.error("Failed to fetch random question.");
+      }
+    } catch (err) {
+      console.error("Error fetching random question:", err);
+    }
+  };
+
+  // Fetch a random question by category
+  const getCategoryQuestion = async () => {
+    if (!selectedCategory) {
+      alert("لطفاً یک دسته‌بندی انتخاب کنید.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/one-random-question-by-category?categoryName=${selectedCategory}`
+      );
+      const result = await response.json();
+      if (result.responseHeader === "OK") {
+        const q = result.dto;
+        setCurrentQuestion({
+          id: q.id,
+          question: q.question,
+          options: [q.answer1, q.answer2, q.answer3, q.answer4],
+          correct: q.correctAnswer,
+          category: q.category,
+        });
+      } else {
+        console.error("Failed to fetch question by category.");
+      }
+    } catch (err) {
+      console.error("Error fetching question by category:", err);
+    }
+  };
+
+  // Fetch all questions on page load
+  const fetchAllQuestions = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/question-set");
+      const result = await response.json();
+      if (result.responseHeader === "OK") {
+        console.log("All questions:", result.dto.questions);
+      } else {
+        console.error("Failed to fetch questions.");
+      }
+    } catch (err) {
+      console.error("Error fetching all questions:", err);
+    }
+  };
+
+  // Handle answering a question
+  const handleAnswer = async (selectedOption) => {
+    if (!currentQuestion) return;
+  
+    try {
+      // Call the answer-question API
+      const response = await fetch("http://localhost:8080/answer-question", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          username: localStorage.getItem("username"),
+          questionId: currentQuestion.id,
+          answer: selectedOption,
+        }).toString(),
+      });
+  
+      const result = await response.json();
+      console.log("API Response:", result); // Debug the response
+
+  
+      if (response.ok && result.responseHeader === "OK") {
+        const correctAnswer = result.dto.value; // Correct answer as an integer from the backend
+  
+        // Compare the correct answer with the user's selected option
+        if (correctAnswer === selectedOption) {
+          alert("پاسخ صحیح است!");
+        } else {
+          alert(`پاسخ اشتباه است! پاسخ صحیح گزینه ${correctAnswer} است.`);
+        }
+  
+        // Add the question to the answered questions list without validation
+        setAnsweredQuestions([
+          ...answeredQuestions,
+          { ...currentQuestion, userAnswer: selectedOption },
+        ]);
+      } else {
+        console.error("Unexpected API response:", result);
+        alert("خطایی در بررسی پاسخ رخ داده است.");
+      }
+    } catch (err) {
+      console.error("Error submitting answer:", err);
+      alert("خطا در ارتباط با سرور.");
+    }
+  
+    setCurrentQuestion(null); // Clear the current question
+  };
+  
+
+  
+
+  useEffect(() => {
+    fetchCategories(); // Fetch categories on page load
+    fetchAllQuestions(); // Fetch all questions on page load
+  }, []);
 
   return (
     <div className="main-container">
       <NavbarPlayer />
 
-      <button id="dark-mode-toggle" className="dark-mode-btn" onClick={toggleDarkMode}>
+      <button id="dark-mode-toggle" className="dark-mode-btn" onClick={() => setDarkMode(!darkMode)}>
         <span id="icon">{darkMode ? "🌜" : "🌞"}</span>
       </button>
 
@@ -82,9 +202,9 @@ const PlayerQuestions = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
             <option value="">انتخاب دسته‌بندی</option>
-            {Object.keys(questions).map((category) => (
-              <option key={category} value={category}>
-                {category}
+            {categories.map((category, index) => (
+              <option key={index} value={category.category_name}>
+                {category.category_name}
               </option>
             ))}
           </select>
@@ -121,18 +241,18 @@ const PlayerQuestions = () => {
         {answeredQuestions.map((answered, index) => (
           <div key={index} className="question-item">
             <h3>سوال: {answered.question}</h3>
-            <p>پاسخ شما: گزینه {answered.userAnswer} -{" "}
-              {answered.isCorrect ? (
-                <span style={{ color: "green" }}>صحیح</span>
-              ) : (
-                <span style={{ color: "red" }}>غلط</span>
-              )}
-            </p>
-            <p>پاسخ صحیح: گزینه {answered.correct}</p>
+            <div className="options">
+              {answered.options.map((option, i) => (
+                <p key={i}>
+                  گزینه {i + 1}: {option}
+                </p>
+              ))}
+            </div>
             <p>دسته‌بندی: {answered.category}</p>
           </div>
         ))}
       </div>
+
     </div>
   );
 };

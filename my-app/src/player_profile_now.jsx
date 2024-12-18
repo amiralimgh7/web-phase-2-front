@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import DesignerNavbar from "./components/DesignerNavbar";
+import NavbarPlayer from "./components/NavbarPlayer";
 import "./profile.css";
 
 const DesignerProfile = () => {
@@ -38,7 +38,7 @@ const DesignerProfile = () => {
 
   return (
     <div className="main-container">
-      <DesignerNavbar />
+      <NavbarPlayer />
 
       <button id="dark-mode-toggle" className="dark-mode-btn" onClick={() => document.body.classList.toggle("dark-mode")}>
         <span id="icon">🌞</span>
@@ -57,8 +57,8 @@ const DesignerProfile = () => {
             <h2>پروفایل بازیکن</h2>
             <p>نام کاربری: {profile.username}</p>
             <p>تعداد دنبال‌کنندگان: {profile.follower_count}</p>
-            <p>تعداد سوالات طراحی شده: {profile.question_count}</p>
-            <p>تعداد دنبال‌شده‌ها: {profile.following_count}</p>
+            <p>تعداد دنبال‌شده‌ها: {profile.question_count}</p>
+            <p>تعداد سوالات طراحی شده: {profile.following_count}</p>
             <p>تعداد سوالات پاسخ داده شده: {profile.answered_count}</p>
             <p>امتیاز کل: {profile.score}</p>
           </>
